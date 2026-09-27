@@ -97,3 +97,15 @@
         padding-top: 30px;
     }
 }
+
+.results-message {
+    text-align: center;
+    color: #666;
+}
+.results-message.error {
+    color: #d32f2f;
+}
+.result-score {
+    color: #888;
+    font-size: 0.9em;
+}

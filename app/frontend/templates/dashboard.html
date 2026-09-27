@@ -39,8 +39,8 @@
         <div class="dashboard-section">
             <h2>Добавление документа</h2>
             <form id="add-document-form" class="dashboard-form">
-                <input type="text" name="title" id="document-title" class="dashboard-input" placeholder="Название документа" required />
-                <textarea id="document-content" name="text" class="dashboard-textarea" placeholder="Содержание документа" required></textarea>
+                <input type="text" name="title" id="document-title" class="dashboard-input" placeholder="Название документа" minlength="3" maxlength="100" required />
+                <textarea id="document-content" name="text" class="dashboard-textarea" placeholder="Содержание документа" minlength="20" maxlength="2000" required></textarea>
                 <button type="submit" class="dashboard-button">
                     Добавить документ <div id="add-document-status" class="status"></div>
                 </button>

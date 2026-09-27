@@ -1,43 +1,83 @@
-
 // Global functions
+
+const TOKEN_KEY = 'adminToken';
+
+function getAdminToken() {
+    try {
+        return localStorage.getItem(TOKEN_KEY);
+    } catch {
+        return null;
+    }
+}
+
+function setAdminToken(token) {
+    try {
+        if (token) localStorage.setItem(TOKEN_KEY, token);
+        else localStorage.removeItem(TOKEN_KEY);
+    } catch {
+        // localStorage может быть недоступен (например, в приватном режиме)
+    }
+}
+
+// fetch с заголовком X-Admin-Token. При 401 запрашивает токен и повторяет запрос.
+async function adminFetch(url, options = {}) {
+    let token = getAdminToken();
+    for (;;) {
+        const headers = new Headers(options.headers || {});
+        if (token) headers.set('X-Admin-Token', token);
+        const response = await fetch(url, { ...options, headers });
+        if (response.status !== 401) return response;
+
+        token = prompt('Введите токен администратора (ADMIN_TOKEN):');
+        setAdminToken(token);
+        if (!token) return response;
+    }
+}
 
 async function reloadDocuments() {
     const documentsList = document.getElementById('documents-list');
     documentsList.innerHTML = 'Загрузка...';
-    documentsDump = await fetch('/dump')
-        .then(response => response.json())
-        .then(data => {
-            documentsList.innerHTML = '';
-            data.forEach(doc => {
-                const div = document.createElement('div');
-                div.classList.add('document-display');
+    const response = await fetch('/documents');
+    if (!response.ok) {
+        documentsList.innerHTML = 'Не удалось загрузить документы';
+        throw new Error('Could not load documents');
+    }
+    const data = await response.json();
 
-                const titleBox = document.createElement('div');
-                titleBox.classList.add('inline-flex');
-                const title = document.createElement('h3');
-                title.textContent = doc.title;
-                const deleteButton = document.createElement('button');
-                deleteButton.classList.add('status', 'delete');
-                titleBox.appendChild(title);
-                titleBox.appendChild(deleteButton);
-                deleteButton.addEventListener('click', async function() {
-                    if (!confirm('Вы уверены, что хотите удалить этот документ?')) return;
-                    const response = await fetch(`/delete_document?id=${doc.id}`, {
-                        method: 'DELETE'
-                    });
-                    if (response.ok) {
-                        documentsList.removeChild(div);
-                    }
-                });
-                const text = document.createElement('p');
-                text.textContent = doc.text;
+    documentsList.innerHTML = '';
+    if (data.length === 0) {
+        documentsList.textContent = 'База пуста';
+        return;
+    }
+    data.forEach(doc => {
+        const div = document.createElement('div');
+        div.classList.add('document-display');
 
-                div.dataset.docId = doc.id;
-                div.appendChild(titleBox);
-                div.appendChild(text);
-                documentsList.appendChild(div);
+        const titleBox = document.createElement('div');
+        titleBox.classList.add('inline-flex');
+        const title = document.createElement('h3');
+        title.textContent = doc.title;
+        const deleteButton = document.createElement('button');
+        deleteButton.classList.add('status', 'delete');
+        titleBox.appendChild(title);
+        titleBox.appendChild(deleteButton);
+        deleteButton.addEventListener('click', async function() {
+            if (!confirm('Вы уверены, что хотите удалить этот документ?')) return;
+            const response = await adminFetch(`/documents/${doc.id}`, {
+                method: 'DELETE'
             });
+            if (response.ok || response.status === 404) {
+                div.remove();
+            }
         });
+        const text = document.createElement('p');
+        text.textContent = doc.text;
+
+        div.dataset.docId = doc.id;
+        div.appendChild(titleBox);
+        div.appendChild(text);
+        documentsList.appendChild(div);
+    });
 }
 
 async function clearStatuses() {
@@ -45,6 +85,11 @@ async function clearStatuses() {
     statusDivs.forEach(div => {
         div.classList.remove('success', 'error', 'loader', 'alert');
     });
+}
+
+function setStatus(statusDiv, state) {
+    statusDiv.classList.remove('success', 'error', 'loader', 'alert');
+    if (state) statusDiv.classList.add(state);
 }
 
 // On page load
@@ -56,39 +101,28 @@ document.addEventListener('DOMContentLoaded', async function() {
 document.getElementById('reset-db-button').addEventListener('click', async function() {
     clearStatuses();
     const statusDiv = document.getElementById('reset-db-status');
-    statusDiv.classList.remove('success', 'error');
-    statusDiv.classList.add('loader');
+    setStatus(statusDiv, 'loader');
 
-    const response = await fetch('/reset', {
+    const response = await adminFetch('/documents/reset', {
         method: 'POST'
     });
 
-    statusDiv.classList.remove('loader');
-    if (!response.ok) {
-        statusDiv.classList.add('error');
-        throw new Error('Could not reset database');
-    }
-    statusDiv.classList.add('success');
+    setStatus(statusDiv, response.ok ? 'success' : 'error');
     await reloadDocuments();
 })
 
 // Clear database
 document.getElementById('clear-db-button').addEventListener('click', async function() {
+    if (!confirm('Удалить все документы из базы?')) return;
     clearStatuses();
     const statusDiv = document.getElementById('clear-db-status');
-    statusDiv.classList.remove('success', 'error');
-    statusDiv.classList.add('loader');
+    setStatus(statusDiv, 'loader');
 
-    const response = await fetch('/clear', {
-        method: 'POST'
+    const response = await adminFetch('/documents', {
+        method: 'DELETE'
     });
 
-    statusDiv.classList.remove('loader');
-    if (!response.ok) {
-        statusDiv.classList.add('error');
-        throw new Error('Could not clear database');
-    }
-    statusDiv.classList.add('success');
+    setStatus(statusDiv, response.ok ? 'success' : 'error');
     await reloadDocuments();
 });
 
@@ -96,19 +130,15 @@ document.getElementById('clear-db-button').addEventListener('click', async funct
 document.getElementById('refresh-button').addEventListener('click', async function() {
     clearStatuses();
     const statusDiv = document.getElementById('refresh-status');
-    statusDiv.classList.remove('success', 'error');
-    statusDiv.classList.add('loader');
+    setStatus(statusDiv, 'loader');
 
-    await reloadDocuments()
-        .then(() => {
-            statusDiv.classList.remove('loader');
-            statusDiv.classList.add('success');
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            statusDiv.classList.remove('loader');
-            statusDiv.classList.add('error');
-        });
+    try {
+        await reloadDocuments();
+        setStatus(statusDiv, 'success');
+    } catch (error) {
+        console.error('Error:', error);
+        setStatus(statusDiv, 'error');
+    }
 });
 
 // Import documents from files
@@ -121,46 +151,40 @@ uploadForm.addEventListener('submit', async function(event) {
     uploadButton.classList.remove('tooltip')
 
     const statusDiv = document.getElementById('upload-status');
-    statusDiv.classList.add('loader');
     const files = fileInput.files;
     if (files.length === 0) {
-        statusDiv.classList.remove('loader');
-        statusDiv.classList.add('error');
+        setStatus(statusDiv, 'error');
         alert('Пожалуйста, выберите файл для загрузки');
         return;
     }
+    setStatus(statusDiv, 'loader');
+
     const formData = new FormData();
     for (const file of files) {
         formData.append('files', file);
     }
 
-    await fetch('/import_data', {
-        method: 'POST',
-        body: formData
-    })
-    .then(async response => {
+    try {
+        const response = await adminFetch('/documents/import', {
+            method: 'POST',
+            body: formData
+        });
         if (!response.ok) {
             throw new Error('Could not upload file');
         }
-        if (response.status === 207)
-        {
-            const resp_json =  await response.json()
-            uploadButton.dataset.tooltip = `Не удалось обработать следующие файлы:\n\n${resp_json.files_failed.join('\n')}`
-            uploadButton.classList.add('tooltip')
-            statusDiv.classList.remove('loader');
-            statusDiv.classList.add('alert')
+        if (response.status === 207) {
+            const result = await response.json();
+            uploadButton.dataset.tooltip = `Не удалось обработать следующие файлы:\n\n${result.files_failed.join('\n')}`;
+            uploadButton.classList.add('tooltip');
+            setStatus(statusDiv, 'alert');
+        } else {
+            setStatus(statusDiv, 'success');
+            uploadForm.reset();
         }
-        else
-        {
-            statusDiv.classList.remove('loader');
-            statusDiv.classList.add('success');
-        }
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error:', error);
-        statusDiv.classList.remove('loader');
-        statusDiv.classList.add('error');
-    });
+        setStatus(statusDiv, 'error');
+    }
     await reloadDocuments();
 });
 
@@ -170,42 +194,39 @@ addDocumentForm.addEventListener('submit', async function(event) {
     event.preventDefault();
     clearStatuses();
     const statusDiv = document.getElementById('add-document-status');
-    statusDiv.classList.remove('success', 'error');
-    statusDiv.classList.add('loader');
+    setStatus(statusDiv, 'loader');
 
     const formData = new FormData(addDocumentForm);
     const data = Object.fromEntries(formData.entries());
-    
+
     if (data.title.trim() === '' || data.text.trim() === '' ) {
-        statusDiv.classList.remove('loader');
-        statusDiv.classList.add('error');
+        setStatus(statusDiv, 'error');
         alert('Пожалуйста, заполните все поля');
         return;
     }
 
-    await fetch('/add_document', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
+    try {
+        const response = await adminFetch('/documents', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        if (response.status === 422) {
+            setStatus(statusDiv, 'error');
+            alert('Заголовок должен быть от 3 до 100 символов, текст — от 20 до 2000 символов');
+            return;
+        }
         if (!response.ok) {
             throw new Error('Could not add document');
         }
-        return response.json();
-    })
-    .then(result => {
-        statusDiv.classList.remove('loader');
-        statusDiv.classList.add('success');
+        setStatus(statusDiv, 'success');
         addDocumentForm.reset();
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error:', error);
-        statusDiv.classList.remove('loader');
-        statusDiv.classList.add('error');
-    });
+        setStatus(statusDiv, 'error');
+    }
 
     await reloadDocuments();
 });
