@@ -63,10 +63,10 @@ python -m app.main [ПАРАМЕТРЫ]
 ```
 
 ### [Вариант 3] Docker
-Готовый образ:
+Готовый образ (CPU, публикуется автоматически при каждом релизе):
 ```sh
 docker run -d -p 8000:8000 -e HF_TOKEN=<ТОКЕН_HUGGINGFACE> \
-    -v sss-storage:/home/sss/storage jwth32/semantic-ss:1.0.0 [ПАРАМЕТРЫ]
+    -v sss-storage:/home/sss/storage ghcr.io/tihonsotnikov/semantic-search-system:1.0.0 [ПАРАМЕТРЫ]
 ```
 В томе `sss-storage` хранятся база, логи и скачанная модель, поэтому они переживают пересоздание контейнера.
 
