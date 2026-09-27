@@ -1,11 +1,10 @@
 import copy
 import logging
-import click
 import sys
 from typing import Literal
 
+import click
 from uvicorn.config import LOGGING_CONFIG
-
 
 TRACE_LOG_LEVEL = 5
 
@@ -90,15 +89,15 @@ def configure_logging(
         sss_logger.addHandler(file_handler)
 
 
-def get_unified_logging_config(level: str = 'INFO') -> dict:
+def get_unified_logging_config(level: str = 'INFO', output_file: str | None = 'app.log') -> dict:
     """Модифицирует стандартный словарь настроек Uvicorn, внедряя наши обработчики."""
     config = copy.deepcopy(LOGGING_CONFIG)
-    
+
     log_format = '%(asctime)s %(levelname)s [%(name)s] %(message)s'
     date_format = '%Y-%m-%d %H:%M:%S'
 
     config["formatters"]["custom_colored"] = {
-        "()": "app.logger.logger.ColoredFormatter", 
+        "()": "app.logger.logger.ColoredFormatter",
         "fmt": log_format,
         "datefmt": date_format,
     }
@@ -107,22 +106,24 @@ def get_unified_logging_config(level: str = 'INFO') -> dict:
         "datefmt": date_format,
     }
 
-    config["handlers"]["file"] = {
-        "class": "logging.FileHandler",
-        "filename": "app.log",
-        "mode": "a",
-        "encoding": "utf-8",
-        "formatter": "plain",
-    }
-
     config["handlers"]["default"]["formatter"] = "custom_colored"
     config["handlers"]["access"]["formatter"] = "custom_colored"
 
-    config["loggers"]["uvicorn"]["handlers"].append("file")
-    config["loggers"]["uvicorn.access"]["handlers"].append("file")
+    handlers = ["default"]
+    if output_file:
+        config["handlers"]["file"] = {
+            "class": "logging.FileHandler",
+            "filename": output_file,
+            "mode": "a",
+            "encoding": "utf-8",
+            "formatter": "plain",
+        }
+        config["loggers"]["uvicorn"]["handlers"].append("file")
+        config["loggers"]["uvicorn.access"]["handlers"].append("file")
+        handlers.append("file")
 
     config["loggers"]["semantic_search_system"] = {
-        "handlers": ["default", "file"],
+        "handlers": handlers,
         "level": level,
         "propagate": False,
     }

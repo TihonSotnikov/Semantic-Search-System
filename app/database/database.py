@@ -1,10 +1,10 @@
-import numpy as np
-
 from typing import Any
+
+import numpy as np
 from sqlalchemy import Dialect
-from torch import Tensor, from_numpy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.types import TypeDecorator, LargeBinary
+from sqlalchemy.types import LargeBinary, TypeDecorator
+from torch import Tensor, from_numpy
 
 
 class Base(DeclarativeBase):
@@ -18,7 +18,7 @@ class TensorType(TypeDecorator):
         if value is not None:
             return value.detach().cpu().numpy().astype(np.float32).tobytes()
         return None
-    
+
     def process_result_value(self, value: bytes | None, dialect: Dialect) -> Tensor | None:
         if value is not None:
             arr = np.frombuffer(value, dtype=np.float32).copy()

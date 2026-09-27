@@ -1,21 +1,11 @@
-import os
 import heapq
 import logging
-from typing import List, Tuple, Any
+from typing import Any
 
 import torch
 from sentence_transformers import SentenceTransformer, util
 
-from app.logger.logger import configure_logging
-
-
-logging_level = os.getenv('LOGGING', 'INFO')
-configure_logging(
-    __name__,
-    "app.log",
-    logging._nameToLevel.get(logging_level, logging.INFO)
-)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('semantic_search_system.ml')
 
 
 def load_model(model_name: str = "cointegrated/rubert-tiny2") -> SentenceTransformer:
@@ -40,13 +30,13 @@ def load_model(model_name: str = "cointegrated/rubert-tiny2") -> SentenceTransfo
     return model
 
 
-def compute_embeddings(texts: List[str], model: SentenceTransformer) -> torch.Tensor:
+def compute_embeddings(texts: list[str], model: SentenceTransformer) -> torch.Tensor:
     """
     Вычисляет векторные представления для списка текстов.
 
     Parameters
     ----------
-    texts : List[str]
+    texts : list[str]
         Массив строк для векторизации.
     model : SentenceTransformer
         Загруженная модель векторизации.
@@ -72,7 +62,7 @@ def encode_query(model: SentenceTransformer, query: str) -> torch.Tensor:
 
 
 def compute_batch_scores(
-    query_embedding: torch.Tensor, 
+    query_embedding: torch.Tensor,
     batch_embeddings: torch.Tensor
 ) -> torch.Tensor:
     """Вычисление косинусного сходства для батча."""
@@ -82,16 +72,19 @@ def compute_batch_scores(
 
 
 def select_top_k(
-    existing_top_k: List[Tuple[float, Any]], 
-    scores: torch.Tensor, 
-    contents: List[Any], 
+    existing_top_k: list[tuple[float, Any]],
+    scores: torch.Tensor,
+    contents: list[Any],
     k: int
-) -> List[Tuple[float, Any]]:
+) -> list[tuple[float, Any]]:
     """
     Обновление списка top-k с использованием min-heap.
     Храним (score, data), чтобы heapq сравнивал по score.
+    При k <= 0 список не изменяется.
     """
-    for score, data in zip(scores.tolist(), contents):
+    if k <= 0:
+        return existing_top_k
+    for score, data in zip(scores.tolist(), contents, strict=True):
         if len(existing_top_k) < k:
             heapq.heappush(existing_top_k, (score, data))
         else:
@@ -99,20 +92,3 @@ def select_top_k(
                 heapq.heapreplace(existing_top_k, (score, data))
     return existing_top_k
 
-
-def search_similar_texts(
-    query: str,
-    corpus_texts: List[str],
-    corpus_embeddings: torch.Tensor,
-    model: SentenceTransformer,
-    top_k: int = 3
-) -> List[Tuple[str, float]]:
-    """
-    Совместимая обертка над новыми функциями.
-    """
-    q_emb = encode_query(model, query)
-    scores = compute_batch_scores(q_emb, corpus_embeddings)
-    
-    # Для совместимости возвращаем List[Tuple[str, float]]
-    top_k_list = select_top_k([], scores, corpus_texts, top_k)
-    return [(text, score) for score, text in sorted(top_k_list, reverse=True)]

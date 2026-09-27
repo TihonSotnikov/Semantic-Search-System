@@ -58,18 +58,9 @@ def test_select_top_k_returns_highest_scores():
     assert sorted_top_k[1][1] == "third"
 
 
-def test_search_similar_texts_selects_top_documents():
-    corpus_texts = ["a", "b", "c"]
-    corpus_embeddings = torch.tensor(
-        [[1.0, 0.0], [0.0, 1.0], [0.7, 0.7]], dtype=torch.float32
-    )
-    results = ml_engine.search_similar_texts(
-        "query",
-        corpus_texts,
-        corpus_embeddings,
-        DummyQueryModel(),
-        top_k=2,
-    )
 
-    assert len(results) == 2
-    assert results[0][1] >= results[1][1]
+def test_select_top_k_with_non_positive_k_returns_input():
+    scores = torch.tensor([0.2, 0.8], dtype=torch.float32)
+
+    assert ml_engine.select_top_k([], scores, ["a", "b"], 0) == []
+    assert ml_engine.select_top_k([], scores, ["a", "b"], -1) == []
