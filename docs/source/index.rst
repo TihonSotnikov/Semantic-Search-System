@@ -1,24 +1,22 @@
-.. Semantic Search System documentation master file, created by
-   sphinx-quickstart on Mon May 25 04:28:37 2026.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Semantic Search System
+======================
 
-Semantic Search System documentation
-====================================
+Веб-сервис семантического поиска по корпоративной базе знаний.
+Документы и поисковые запросы переводятся в векторы моделью
+`sentence-transformers`, а поиск ведется по косинусному сходству.
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
-
+Установка, запуск и описание API приведены в
+`README <https://github.com/TihonSotnikov/Semantic-Search-System#readme>`_.
+Интерактивная документация API доступна на запущенном сервере по адресу ``/docs``.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Модули:
 
    modules
 
-Indices and tables
-==================
+Указатели
+=========
 
 * :ref:`genindex`
 * :ref:`modindex`

@@ -23,6 +23,14 @@ app.main module
    :show-inheritance:
    :undoc-members:
 
+app.services module
+-------------------
+
+.. automodule:: app.services
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 

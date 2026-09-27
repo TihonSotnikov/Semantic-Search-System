@@ -211,3 +211,4 @@ __marimo__/
 
 # Database files
 *.db
+docs/build/

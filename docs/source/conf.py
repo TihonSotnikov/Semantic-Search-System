@@ -6,7 +6,9 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../../app"))
+sys.path.insert(0, os.path.abspath("../.."))
+
+from app import __version__  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -14,6 +16,7 @@ sys.path.insert(0, os.path.abspath("../../app"))
 project = 'Semantic Search System'
 copyright = '2026, Andrei Chervov, Tihon Sotnikov'
 author = 'Andrei Chervov, Tihon Sotnikov'
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -34,4 +37,3 @@ language = 'ru'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'furo'
-html_static_path = ['_static']
