@@ -55,6 +55,12 @@ def test_create_document_validation(client):
     assert response.status_code == 422
 
 
+def test_create_document_rejects_blank_fields(client):
+    response = client.post('/documents', json={"title": "   ", "text": " " * 30})
+
+    assert response.status_code == 422
+
+
 def test_created_document_is_searchable(client):
     client.post('/documents', json=VALID_DOCUMENT)
     results = client.get('/search', params={'q': 'полис ДМС', 'k': 1}).json()

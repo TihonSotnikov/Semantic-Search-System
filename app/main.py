@@ -50,6 +50,9 @@ MAX_TOP_K = 50
 
 
 class DocumentSchema(BaseModel):
+    # Пробелы по краям не учитываются в длине: документ из одних пробелов не пройдет проверку
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     title: str = Field(..., min_length=3, max_length=100)
     text: str = Field(..., min_length=20, max_length=2000)
 
