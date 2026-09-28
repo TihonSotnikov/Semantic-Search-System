@@ -3,6 +3,16 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии соответствуют [Semantic Versioning](https://semver.org/lang/ru/).
 
+## [1.0.1] - 2026-09-28
+
+### Исправлено
+- Документ с заголовком или текстом из одних пробелов проходил проверку длины: пробелы по краям теперь отбрасываются.
+- Ошибка разметки в docstring `import_documents` ломала сборку документации Sphinx.
+- Предупреждение сборки о версии `uv_build` с uv 0.12.
+
+### Изменено
+- README переписан.
+
 ## [1.0.0] - 2026-09-27
 
 Первый стабильный релиз.
@@ -60,4 +70,5 @@
 
 Учебная версия, разработанная в рамках курса.
 
+[1.0.1]: https://github.com/TihonSotnikov/Semantic-Search-System/releases/tag/v1.0.1
 [1.0.0]: https://github.com/TihonSotnikov/Semantic-Search-System/releases/tag/v1.0.0
