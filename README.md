@@ -1,212 +1,131 @@
-# 🔍 Система семантического поиска по корпоративной базе знаний
+<p align="center">
+  Веб-сервис семантического поиска по корпоративной базе знаний. Документы и запросы переводятся в векторы моделью <code>sentence-transformers</code>, поэтому находятся документы, близкие по смыслу, а не по совпадению слов.
+</p>
 
-[![Tests](https://github.com/TihonSotnikov/Semantic-Search-System/actions/workflows/tests.yml/badge.svg)](https://github.com/TihonSotnikov/Semantic-Search-System/actions/workflows/tests.yml)
-![Python](https://img.shields.io/badge/python-3.13+-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.13-a8c8f0?style=flat&logo=python&logoColor=white" alt="Python 3.13">
+  <img src="https://img.shields.io/badge/FastAPI-0.136-b8e0d2?style=flat&logo=fastapi&logoColor=white" alt="FastAPI 0.136">
+  <img src="https://img.shields.io/badge/sentence--transformers-5.4-b8e0d2?style=flat&logo=huggingface&logoColor=white" alt="sentence-transformers 5.4">
+  <img src="https://img.shields.io/badge/PyTorch-2.11-b8e0d2?style=flat&logo=pytorch&logoColor=white" alt="PyTorch 2.11">
+  <img src="https://img.shields.io/badge/SQLAlchemy-2.0-b8e0d2?style=flat&logo=sqlalchemy&logoColor=white" alt="SQLAlchemy 2.0">
+  <img src="https://img.shields.io/badge/license-MIT-d4c8f0?style=flat" alt="MIT">
+</p>
 
-## 📝 Описание проекта
-Веб-сервис для семантического поиска по базе документов. Поиск идет не по совпадению слов, а по смыслу:
-документы и запросы переводятся в векторы NLP-моделью, а результаты ранжируются по косинусному сходству.
+<p align="center">
+  <img src="docs/assets/search.png" alt="Результаты поиска по запросу" width="640">
+</p>
 
-Возможности:
-* Поиск по смыслу через веб-интерфейс или REST API
-* Панель управления: просмотр, добавление, удаление и импорт документов из JSON
-* Поддержка любой модели `sentence-transformers` с HuggingFace
-* Работа на CPU и на NVIDIA GPU (CUDA)
-* Docker-образ
+## Возможности
 
-## ⚙️ Стек технологий
-* **Язык:** Python 3.13+
-* **ML / NLP:** `sentence-transformers` (модель по умолчанию: `google/embeddinggemma-300m`)
-* **Бэкенд:** Uvicorn + FastAPI
-* **База данных:** SQLite (через SQLAlchemy, можно подключить другую)
-* **Фронтенд:** Jinja2, HTML+CSS+JavaScript
+- Поиск по смыслу: на запрос "Где оставить велосипед или самокат" первыми находятся "Велопарковка и хранение СИМ" и "Правила парковки велосипедов и самокатов".
+- Выбор модели векторизации: `gemma` (`google/embeddinggemma-300m`, по умолчанию), `rubert` (`cointegrated/rubert-tiny2`) или идентификатор другой модели `sentence-transformers` с Hugging Face.
+- Векторы хранятся в базе рядом с документами. Поиск проходит по базе потоково, пачками по 100 записей, и отбирает top-k через min-heap.
+- Панель управления `/dashboard`: просмотр, добавление и удаление документов, импорт из JSON-файлов, сброс базы к набору по умолчанию.
+- REST API с интерактивной документацией OpenAPI на `/docs`. Изменение базы можно закрыть токеном `ADMIN_TOKEN`.
+- База знаний по умолчанию: синтетический набор из 171 корпоративного регламента (`data/data.json`).
 
-## 🚀 Установка и запуск
+## Качество
 
-> [!NOTE]
-> Для модели `google/embeddinggemma-300m` (выбрана по умолчанию) нужна авторизация в HuggingFace Hub
-> и принятие лицензии модели на её [странице](https://huggingface.co/google/embeddinggemma-300m).
-> Токен можно передать через переменную окружения `HF_TOKEN` или командой `hf auth login`.
-> Если такой возможности нет, выберите другую модель, например `--model rubert`.
+Оценка на базе по умолчанию: 10 запросов с ручной разметкой релевантных документов (`evaluation/eval.py`, библиотека `ranx`).
 
-> [!IMPORTANT]
-> Эмбеддинги разных моделей несовместимы. После смены модели удалите файл базы (`data.db`)
-> или сбросьте базу в панели управления.
+| Модель | recall@3 | recall@5 | nDCG@5 | MRR@5 |
+| --- | --- | --- | --- | --- |
+| `rubert` | 0.783 | 0.867 | 0.835 | 0.875 |
 
-### [Вариант 1] uv (рекомендуемый)
-1. Установка `uv`: [Инструкция](https://docs.astral.sh/uv/getting-started/installation/)
-2. Установка зависимостей:
-```sh
-uv sync
-```
-По умолчанию PyTorch ставится с PyPI. Чтобы выбрать сборку явно:
-```sh
-uv sync --extra cpu     # только CPU, самая легкая сборка
-uv sync --extra cu126   # NVIDIA GPU, CUDA 12.6 (Linux и Windows)
-```
-3. Запуск:
-```sh
-uv run python -m app.main [ПАРАМЕТРЫ]
-```
-или через uvicorn (параметры задаются переменными окружения, см. ниже):
-```sh
-uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+Запуск оценки:
+
+```bash
+uv run python -m evaluation.eval --model cointegrated/rubert-tiny2
 ```
 
-### [Вариант 2] pip
-```sh
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python -m app.main [ПАРАМЕТРЫ]
+## Установка
+
+Требуется Python 3.13 и [uv](https://docs.astral.sh/uv/).
+
+```bash
+git clone https://github.com/TihonSotnikov/Semantic-Search-System.git
+cd Semantic-Search-System
+uv sync --extra cpu
 ```
 
-### [Вариант 3] Docker
-Готовый образ (CPU, публикуется автоматически при каждом релизе):
-```sh
-docker run -d -p 8000:8000 -e HF_TOKEN=<ТОКЕН_HUGGINGFACE> \
-    -v sss-storage:/home/sss/storage ghcr.io/tihonsotnikov/semantic-search-system:1.0.0 [ПАРАМЕТРЫ]
-```
-В томе `sss-storage` хранятся база, логи и скачанная модель, поэтому они переживают пересоздание контейнера.
+Для NVIDIA GPU вместо `--extra cpu` используется `--extra cu126`.
 
-Сборка своего образа (по умолчанию CPU, для GPU передайте `TORCH_BACKEND=cu126` и запускайте с `--gpus all`):
-```sh
-docker build -t semantic-ss .
-docker build -t semantic-ss:gpu --build-arg TORCH_BACKEND=cu126 .
+Модель `gemma` на Hugging Face доступна после принятия лицензии и требует токена в переменной `HF_TOKEN`. Модель `rubert` скачивается без токена.
+
+## Использование
+
+```bash
+uv run python -m app.main --model rubert
 ```
 
-_При запуске за Nginx лучше не отдавать контейнеру порт 80 напрямую._
+Поиск открывается на http://localhost:8000, панель управления - на http://localhost:8000/dashboard. При первом запуске создается `data.db` и заполняется документами из `data/data.json`; при следующих запусках база сохраняется.
 
-## 🛠 Настройка
+Запрос к API:
 
-Параметры командной строки (`python -m app.main` и Docker):
-
-| Параметр     | По умолчанию                  | Описание |
-| ------------ | ----------------------------- | -------- |
-| `--host`     | `0.0.0.0`                     | Хост (`0.0.0.0` для доступа из сети) |
-| `--port`     | `8000`                        | Порт |
-| `--database` | `sqlite+aiosqlite:///data.db` | URL базы данных для SQLAlchemy |
-| `--model`    | `gemma`                       | Модель: идентификатор с HuggingFace или короткое имя `gemma`, `rubert`, `gte` |
-
-Переменные окружения (работают при любом способе запуска):
-
-| Переменная     | По умолчанию                  | Описание |
-| -------------- | ----------------------------- | -------- |
-| `DATABASE_URL` | `sqlite+aiosqlite:///data.db` | То же, что `--database` |
-| `MODEL_NAME`   | `gemma`                       | То же, что `--model` |
-| `ADMIN_TOKEN`  | не задан                      | Токен для изменения базы (см. ниже) |
-| `DATA_FILE`    | `data/data.json`              | Документы, которыми заполняется новая база и выполняется сброс |
-| `LOGGING`      | `INFO`                        | Уровень логирования |
-| `LOG_FILE`     | `app.log`                     | Файл логов (пустое значение отключает запись в файл) |
-| `HF_TOKEN`     | не задан                      | Токен HuggingFace |
-
-При первом запуске база создается и заполняется документами из `data/data.json`.
-При следующих запусках существующая база не изменяется.
-
-### 🔒 Защита панели управления
-Если задан `ADMIN_TOKEN`, все запросы, изменяющие базу, требуют заголовок `X-Admin-Token`.
-Панель управления сама запросит токен и запомнит его в браузере. Поиск и просмотр документов остаются открытыми.
-
-Без `ADMIN_TOKEN` изменять базу может любой, у кого есть доступ к серверу. Для публичного запуска токен обязателен.
-
-## 🖥 Использование
-
-* `http://127.0.0.1:8000/` — страница поиска
-* `http://127.0.0.1:8000/dashboard` — панель управления базой
-* `http://127.0.0.1:8000/docs` — интерактивная документация API (Swagger)
-
-### REST API
-
-| Метод    | Путь                     | Описание |
-| -------- | ------------------------ | -------- |
-| `GET`    | `/search?q=...&k=3`      | Поиск, `k` от 1 до 50 |
-| `GET`    | `/documents`             | Список документов |
-| `POST`   | `/documents`             | 🔒 Добавить документ `{"title": "...", "text": "..."}` |
-| `DELETE` | `/documents/{id}`        | 🔒 Удалить документ |
-| `DELETE` | `/documents`             | 🔒 Удалить все документы |
-| `POST`   | `/documents/import`      | 🔒 Импорт документов из JSON-файлов (`multipart/form-data`, поле `files`) |
-| `POST`   | `/documents/reset`       | 🔒 Сбросить базу к документам по умолчанию |
-| `GET`    | `/health`                | Проверка работоспособности |
-
-🔒 — требует `X-Admin-Token`, если задан `ADMIN_TOKEN`.
-
-Пример:
-```sh
-curl "http://127.0.0.1:8000/search?q=как%20оформить%20командировку&k=3"
+```bash
+curl -G http://localhost:8000/search --data-urlencode "q=Где оставить велосипед или самокат" -d k=2
 ```
 
-Формат файла для импорта (пример: `data/data_50_docs.json`):
+Ответ (модель `rubert`, тексты сокращены):
+
 ```json
 [
-  { "title": "Заголовок документа", "text": "Текст документа" }
+  {"id": 25, "score": 0.6097, "title": "Велопарковка и хранение СИМ", "text": "Для сотрудников, предпочитающих велосипеды..."},
+  {"id": 162, "score": 0.5658, "title": "Правила парковки велосипедов и самокатов", "text": "Наши парковочные места..."}
 ]
 ```
-Заголовок: от 3 до 100 символов, текст: от 20 до 2000 символов.
 
-## 🧪 Тестирование и оценка качества
+### Docker
 
-Тесты не скачивают модель: вместо неё используется заглушка.
-```sh
+Образ публикуется в GitHub Container Registry. База, логи и скачанная модель хранятся в томе `/home/sss/storage`.
+
+```bash
+docker run -d -p 8000:8000 -e HF_TOKEN=<token> \
+    -v sss-storage:/home/sss/storage ghcr.io/tihonsotnikov/semantic-search-system:latest
+```
+
+Без токена Hugging Face вместо `-e HF_TOKEN=<token>` передается `-e MODEL_NAME=rubert`.
+
+Сборка образа из исходников (`TORCH_BACKEND=cu126` - вариант с поддержкой GPU):
+
+```bash
+docker build -t semantic-search-system .
+docker build --build-arg TORCH_BACKEND=cu126 -t semantic-search-system:gpu .
+```
+
+## Настройка
+
+| Переменная | Аргумент | По умолчанию | Назначение |
+| --- | --- | --- | --- |
+| `MODEL_NAME` | `--model` | `gemma` | Модель векторизации |
+| `DATABASE_URL` | `--database` | `sqlite+aiosqlite:///data.db` | URL базы для SQLAlchemy (драйверы `aiosqlite`, `asyncpg`) |
+| | `--host`, `--port` | `0.0.0.0`, `8000` | Адрес сервера |
+| `ADMIN_TOKEN` | | не задан | Токен для изменения базы, передается в заголовке `X-Admin-Token` |
+| `DATA_FILE` | | `data/data.json` | Документы по умолчанию |
+| `LOG_FILE` | | `app.log` | Файл логов, пустое значение отключает запись в файл |
+| `LOGGING` | | `INFO` | Уровень логирования |
+
+## API
+
+| Метод | Путь | Описание |
+| --- | --- | --- |
+| `GET` | `/search?q=&k=` | Поиск, `k` от 1 до 50 (по умолчанию 3) |
+| `GET` | `/documents` | Все документы |
+| `POST` | `/documents` | Добавление документа `{"title": ..., "text": ...}` |
+| `DELETE` | `/documents/{id}` | Удаление документа |
+| `DELETE` | `/documents` | Очистка базы |
+| `POST` | `/documents/import` | Импорт JSON-файлов со списком документов |
+| `POST` | `/documents/reset` | Сброс базы к документам по умолчанию |
+| `GET` | `/health` | Проверка состояния |
+
+Эндпоинты изменения базы требуют `X-Admin-Token`, если задан `ADMIN_TOKEN`. Пример файла для импорта: `data/data_50_docs.json`.
+
+## Тестирование
+
+```bash
+uv sync --extra cpu
 uv run pytest
 uv run ruff check .
 ```
 
-Оценка качества поиска на размеченных запросах к `data/data.json` (171 документ):
-```sh
-uv run python -m evaluation.eval --model gemma
-```
-
-Результаты для `google/embeddinggemma-300m`:
-
-| Метрика  | Значение |
-| -------: | -------- |
-| recall@3 | 0.917    |
-| recall@5 | 0.950    |
-| ndcg@3   | 0.932    |
-| ndcg@5   | 0.946    |
-| mrr@5    | 0.950    |
-
-## 📚 Документация кода
-```sh
-uv sync --group docs
-uv run sphinx-build docs/source docs/build
-```
-
-## 📁 Структура проекта
-```text
-Semantic-Search-System/
-│
-├── app/
-│   ├── database/
-│   │   └── database.py     # Модель таблицы и хранение векторов
-│   ├── frontend/
-│   │   ├── static/         # Скрипты, стили, медиа
-│   │   ├── templates/      # HTML шаблоны
-│   │   └── frontend.py     # Эндпоинты страниц
-│   ├── logger/
-│   │   └── logger.py       # Настройка логирования
-│   ├── ml/
-│   │   └── ml_engine.py    # Векторизация и косинусное сходство
-│   ├── services.py         # Построение эмбеддингов документов и поиск top-k
-│   └── main.py             # Приложение FastAPI и REST API
-│
-├── data/                   # Синтетические документы для базы
-├── evaluation/             # Оценка качества поиска (ranx)
-├── tests/                  # Тесты (pytest)
-├── docs/                   # Документация кода (Sphinx)
-├── dev/                    # План разработки и распределение обязанностей
-├── reports/                # Еженедельные отчеты
-├── Dockerfile
-├── pyproject.toml          # Зависимости и настройки инструментов
-├── requirements.txt        # Зависимости для pip
-├── CHANGELOG.md
-└── README.md
-```
-
-## 👥 Авторы
-* Тихон Сотников — ML, база данных, ядро
-* Андрей Червов — API, фронтенд
-
-## 📄 Лицензия
-[MIT](LICENSE)
+Тесты API используют детерминированную заглушку вместо модели и не скачивают веса.
