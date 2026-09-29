@@ -3,12 +3,12 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.13-a8c8f0?style=flat&logo=python&logoColor=white" alt="Python 3.13">
-  <img src="https://img.shields.io/badge/FastAPI-0.136-b8e0d2?style=flat&logo=fastapi&logoColor=white" alt="FastAPI 0.136">
-  <img src="https://img.shields.io/badge/sentence--transformers-5.4-b8e0d2?style=flat&logo=huggingface&logoColor=white" alt="sentence-transformers 5.4">
-  <img src="https://img.shields.io/badge/PyTorch-2.11-b8e0d2?style=flat&logo=pytorch&logoColor=white" alt="PyTorch 2.11">
-  <img src="https://img.shields.io/badge/SQLAlchemy-2.0-b8e0d2?style=flat&logo=sqlalchemy&logoColor=white" alt="SQLAlchemy 2.0">
-  <img src="https://img.shields.io/badge/license-MIT-d4c8f0?style=flat" alt="MIT">
+  <img src="https://img.shields.io/badge/Python-3.13-3776AB?style=flat&logo=python&logoColor=white" alt="Python 3.13">
+  <img src="https://img.shields.io/badge/FastAPI-0.136-009688?style=flat&logo=fastapi&logoColor=white" alt="FastAPI 0.136">
+  <img src="https://img.shields.io/badge/sentence--transformers-5.4-FFD21E?style=flat&logo=huggingface&logoColor=white" alt="sentence-transformers 5.4">
+  <img src="https://img.shields.io/badge/PyTorch-2.11-EE4C2C?style=flat&logo=pytorch&logoColor=white" alt="PyTorch 2.11">
+  <img src="https://img.shields.io/badge/SQLAlchemy-2.0-D71F00?style=flat&logo=sqlalchemy&logoColor=white" alt="SQLAlchemy 2.0">
+  <img src="https://img.shields.io/badge/license-MIT-yellow?style=flat" alt="MIT">
 </p>
 
 <p align="center">
